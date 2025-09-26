@@ -1,0 +1,58 @@
+﻿name: Java CI with Maven
+
+on:
+  push:
+    branches: [ main ]
+  schedule:
+    - cron: '2 7 * * *'   # 每天中国时间15点2分 (UTC时间7点2分)
+    - cron: '2 16 * * *'  # 每天UTC时间16点2分
+    - cron: '2 0 * * *'   # 每天UTC时间0点2分
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up JDK 8
+      uses: actions/setup-java@v3
+      with:
+        java-version: '8'
+        distribution: 'temurin'
+        cache: 'maven'
+    
+    - name: Display current date
+      run: date
+    
+    - name: Validate project structure
+      run: |
+        echo "项目文件检查:"
+        ls -la
+        if [ ! -f pom.xml ]; then
+          echo "错误: pom.xml 文件不存在"
+          exit 1
+        fi
+    
+    - name: Build with Maven
+      run: mvn -B clean compile
+      
+    - name: Run Java Application
+      run: mvn -B exec:java -Dexec.mainClass="com.wdbyte.bing.Wallpaper"
+    
+    - name: Check generated files
+      run: |
+        echo "生成的文件:"
+        find . -name "*.md" -o -name "*.jpg" -o -name "*.png" | head -20
+        ls -la picture/ 2>/dev/null || echo "picture目录不存在"
+        ls -la docs/ 2>/dev/null || echo "docs目录不存在"
+    
+    - name: Commit and push changes
+      if: github.event_name != 'push'  # 避免循环触发
+      run: |
+        git config --local user.email "actions@github.com"
+        git config --local user.name "github-actions[bot]"
+        git pull --rebase
+        git add README.md bing-wallpaper.md picture/ docs/ zh-cn/ || echo "某些文件不存在，跳过"
+        git diff --staged --quiet || git commit -m "Auto update: $(date +'%Y-%m-%d %H:%M')"
+        git push
