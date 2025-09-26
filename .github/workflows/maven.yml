@@ -7,7 +7,7 @@ on:
     - cron: '2 7 * * *'   # 每天中国时间15点2分 (UTC时间7点2分)
     - cron: '2 16 * * *'  # 每天UTC时间16点2分
     - cron: '2 0 * * *'   # 每天UTC时间0点2分
-  workflow_dispatch:       # 添加这一行来支持手动触发
+  workflow_dispatch:       # 支持手动触发
 
 jobs:
   build:
@@ -15,6 +15,8 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}  # 添加 token 用于推送
     
     - name: Set up JDK 8
       uses: actions/setup-java@v3
@@ -53,7 +55,21 @@ jobs:
       run: |
         git config --local user.email "actions@github.com"
         git config --local user.name "github-actions[bot]"
-        git pull --rebase
-        git add README.md bing-wallpaper.md picture/ docs/ zh-cn/ || echo "某些文件不存在，跳过"
-        git diff --staged --quiet || git commit -m "Auto update: $(date +'%Y-%m-%d %H:%M')"
+        
+        # 检查是否有文件需要提交
+        git status
+        
+        # 添加可能生成的文件
+        git add README.md bing-wallpaper.md picture/ docs/ zh-cn/ || echo "某些文件不存在，跳过添加"
+        
+        # 检查是否有 staged 的更改
+        if git diff --staged --quiet; then
+          echo "没有更改需要提交"
+          exit 0
+        fi
+        
+        # 提交更改
+        git commit -m "Auto update: $(date +'%Y-%m-%d %H:%M')"
+        
+        # 直接推送，不进行 pull（因为我们是基于最新代码运行的）
         git push
