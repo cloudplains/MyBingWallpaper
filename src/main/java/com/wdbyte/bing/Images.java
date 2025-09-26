@@ -5,7 +5,7 @@ import java.util.Objects;
 /**
  * @author niujinpeng
  * @date 2021/02/08
- * @link https://github.com/cloudplains
+ * @link https://github.com/niumoo
  */
 public class Images {
     private String desc;

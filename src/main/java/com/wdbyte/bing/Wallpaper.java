@@ -1,4 +1,4 @@
-﻿package com.wdbyte.bing;
+package com.wdbyte.bing;
 
 import java.io.IOException;
 import java.nio.file.Paths;
@@ -17,7 +17,7 @@ import com.wdbyte.bing.html.WebSiteGenerator;
 /**
  * @author niujinpeng
  * @date 2021/02/08
- * @link https://github.com/cloudplains
+ * @link https://github.com/niumoo
  */
 public class Wallpaper {
 
