@@ -286,10 +286,19 @@
             return string.charAt(0).toUpperCase() + string.slice(1);
         }
         
-        // 获取Bing壁纸数据
+        // 获取Bing壁纸数据 - 使用无CORS限制的方法
         async function fetchBingWallpaper(version) {
             try {
-                const response = await fetch('https://www.bing.com/HPImageArchive.aspx?format=js&idx=0&n=1&mkt=zh-CN');
+                // 使用CORS代理绕过跨域限制
+                const proxyUrl = 'https://api.allorigins.win/raw?url=';
+                const bingApiUrl = 'https://www.bing.com/HPImageArchive.aspx?format=js&idx=0&n=1&mkt=zh-CN';
+                
+                const response = await fetch(proxyUrl + encodeURIComponent(bingApiUrl));
+                
+                if (!response.ok) {
+                    throw new Error('网络请求失败');
+                }
+                
                 const data = await response.json();
                 
                 if (data.images && data.images.length > 0) {
@@ -338,13 +347,93 @@
                 document.getElementById(`error${capitalizeFirstLetter(version)}`).style.display = 'block';
                 document.getElementById(`error${capitalizeFirstLetter(version)}`).textContent = 
                     '加载失败: ' + error.message;
+                    
+                // 如果代理失败，尝试使用备选方案
+                if (error.message.includes('Failed to fetch') || error.message.includes('网络请求失败')) {
+                    // 使用备选的Bing壁纸API
+                    setTimeout(() => {
+                        useAlternativeBingAPI(version);
+                    }, 1000);
+                }
             }
+        }
+        
+        // 备选方案：使用其他可用的Bing壁纸API
+        async function useAlternativeBingAPI(version) {
+            try {
+                // 尝试使用另一个无CORS限制的Bing壁纸API
+                const alternativeApi = 'https://bingw.jasonzeng.dev?resolution=-1&format=js';
+                const response = await fetch(alternativeApi);
+                
+                if (!response.ok) {
+                    throw new Error('备选API请求失败');
+                }
+                
+                const data = await response.json();
+                
+                if (data && data.images && data.images.length > 0) {
+                    const image = data.images[0];
+                    let imageUrl = image.url;
+                    
+                    // 根据版本调整URL
+                    switch(version) {
+                        case 'mobile':
+                            imageUrl = imageUrl.replace(/1920x1080/, '1080x1920');
+                            break;
+                        case 'ultra':
+                            imageUrl = imageUrl.replace(/1920x1080/, 'UHD');
+                            break;
+                        // standard 使用默认URL
+                    }
+                    
+                    const imgElement = document.getElementById(`wallpaper${capitalizeFirstLetter(version)}`);
+                    imgElement.src = imageUrl;
+                    imgElement.onload = function() {
+                        document.querySelector(`#${version} .loading`).style.display = 'none';
+                        imgElement.style.display = 'block';
+                        
+                        // 显示图片信息
+                        document.getElementById(`info${capitalizeFirstLetter(version)}`).innerHTML = 
+                            `<strong>${image.copyright || 'Bing每日壁纸'}</strong>`;
+                    };
+                }
+            } catch (error) {
+                console.error('备选方案也失败了:', error);
+                // 如果所有方法都失败，显示静态示例图片
+                showFallbackImage(version);
+            }
+        }
+        
+        // 最终备选方案：显示静态示例图片
+        function showFallbackImage(version) {
+            const imgElement = document.getElementById(`wallpaper${capitalizeFirstLetter(version)}`);
+            const loadingElement = document.querySelector(`#${version} .loading`);
+            const errorElement = document.getElementById(`error${capitalizeFirstLetter(version)}`);
+            
+            // 使用Bing的默认壁纸作为示例
+            let fallbackUrl = 'https://www.bing.com/th?id=OHR.SvalbardSun_ZH-CN8793560852_1920x1080.jpg';
+            
+            switch(version) {
+                case 'mobile':
+                    fallbackUrl = 'https://www.bing.com/th?id=OHR.SvalbardSun_ZH-CN8793560852_1080x1920.jpg';
+                    break;
+                case 'ultra':
+                    fallbackUrl = 'https://www.bing.com/th?id=OHR.SvalbardSun_ZH-CN8793560852_UHD.jpg';
+                    break;
+            }
+            
+            imgElement.src = fallbackUrl;
+            loadingElement.style.display = 'none';
+            imgElement.style.display = 'block';
+            
+            document.getElementById(`info${capitalizeFirstLetter(version)}`).innerHTML = 
+                '<strong>示例图片 - 网络连接问题，请刷新重试</strong>';
         }
         
         // 下载图片
         function downloadImage(version) {
             const imgElement = document.getElementById(`wallpaper${capitalizeFirstLetter(version)}`);
-            if (imgElement.src) {
+            if (imgElement.src && !imgElement.src.includes('example')) {
                 const link = document.createElement('a');
                 link.href = imgElement.src;
                 link.download = `bing-wallpaper-${version}-${new Date().toISOString().split('T')[0]}.jpg`;
@@ -357,7 +446,7 @@
         // 设为壁纸（提示用户手动操作）
         function setAsWallpaper(version) {
             const imgElement = document.getElementById(`wallpaper${capitalizeFirstLetter(version)}`);
-            if (imgElement.src) {
+            if (imgElement.src && !imgElement.src.includes('example')) {
                 alert('由于浏览器安全限制，请右键图片选择"图片另存为"，然后手动设置为壁纸。');
             } else {
                 alert('请等待图片加载完成后再操作。');
