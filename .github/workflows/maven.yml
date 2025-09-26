@@ -7,6 +7,7 @@ on:
     - cron: '2 7 * * *'   # 每天中国时间15点2分 (UTC时间7点2分)
     - cron: '2 16 * * *'  # 每天UTC时间16点2分
     - cron: '2 0 * * *'   # 每天UTC时间0点2分
+  workflow_dispatch:       # 添加这一行来支持手动触发
 
 jobs:
   build:
