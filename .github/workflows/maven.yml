@@ -16,7 +16,7 @@ jobs:
     steps:
     - uses: actions/checkout@v3
       with:
-        token: ${{ secrets.GITHUB_TOKEN }}  # 添加 token 用于推送
+        token: ${{ secrets.GITHUB_TOKEN }}
     
     - name: Set up JDK 8
       uses: actions/setup-java@v3
@@ -51,16 +51,16 @@ jobs:
         ls -la docs/ 2>/dev/null || echo "docs目录不存在"
     
     - name: Commit and push changes
-      if: github.event_name != 'push'  # 避免循环触发
+      if: github.event_name != 'push'
       run: |
         git config --local user.email "actions@github.com"
         git config --local user.name "github-actions[bot]"
         
-        # 检查是否有文件需要提交
+        # 检查是否有更改
         git status
         
-        # 添加可能生成的文件
-        git add README.md bing-wallpaper.md picture/ docs/ zh-cn/ || echo "某些文件不存在，跳过添加"
+        # 添加所有生成的文件
+        git add README.md bing-wallpaper.md picture/ docs/ zh-cn/ || echo "某些文件不存在，跳过"
         
         # 检查是否有 staged 的更改
         if git diff --staged --quiet; then
@@ -71,5 +71,21 @@ jobs:
         # 提交更改
         git commit -m "Auto update: $(date +'%Y-%m-%d %H:%M')"
         
-        # 直接推送，不进行 pull（因为我们是基于最新代码运行的）
+        # 推送更改
         git push
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.event_name != 'push'  # 只在定时任务或手动触发时部署
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Deploy to GitHub Pages
+      uses: peaceiris/actions-gh-pages@v3
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: ./docs
+        publish_branch: gh-pages
+        force_orphan: true
