@@ -46,19 +46,6 @@
             border-radius: 4px;
             font-size: 14px;
         }
-        .archive-links {
-            text-align: center;
-            margin-top: 30px;
-        }
-        .archive-link {
-            display: inline-block;
-            margin: 5px;
-            padding: 5px 10px;
-            background: #e0e0e0;
-            border-radius: 4px;
-            text-decoration: none;
-            color: #333;
-        }
     </style>
 </head>
 <body>
@@ -83,67 +70,20 @@
                 const response = await fetch('README.md');
                 const text = await response.text();
                 
-                // 解析README.md中的壁纸表格
+                // 简单的解析逻辑，提取图片信息
                 const wallpaperContainer = document.getElementById('wallpaper-container');
+                wallpaperContainer.innerHTML = '<div class="wallpaper-grid" id="wallpaper-grid"></div>';
                 
-                // 提取表格行
-                const rows = text.match(/\|!\[.*?\]\(.*?\).*?\[download 4k\]\(.*?\)\|/g);
+                const grid = document.getElementById('wallpaper-grid');
                 
-                if (!rows || rows.length === 0) {
-                    wallpaperContainer.innerHTML = '<p>未找到壁纸数据</p>';
-                    return;
-                }
-                
-                // 创建壁纸网格
-                let html = '<div class="wallpaper-grid">';
-                
-                rows.forEach(row => {
-                    // 提取图片URL、日期和标题
-                    const imgMatch = row.match(/!\[.*?\]\((.*?)\)/);
-                    const dateMatch = row.match(/(\d{4}-\d{2}-\d{2})/);
-                    const titleMatch = row.match(/\!\[(.*?)\]/);
-                    const downloadMatch = row.match(/\[download 4k\]\((.*?)\)/);
-                    
-                    if (imgMatch && dateMatch && downloadMatch) {
-                        const thumbnail = imgMatch[1];
-                        const date = dateMatch[1];
-                        const title = titleMatch ? titleMatch[1] : 'Bing Wallpaper';
-                        const downloadUrl = downloadMatch[1];
-                        
-                        html += `
-                            <div class="wallpaper-item">
-                                <img src="${thumbnail}" alt="${title}">
-                                <div class="date">${date}</div>
-                                <div style="font-size: 14px; color: #666; margin-bottom: 10px;">${title}</div>
-                                <a href="${downloadUrl}" class="download-link" target="_blank" download="bing-wallpaper-${date}.jpg">
-                                    下载 4K
-                                </a>
-                            </div>
-                        `;
-                    }
-                });
-                
-                html += '</div>';
-                
-                // 添加归档链接
-                const archiveMatches = text.match(/\[(.*?)\]\(\/picture\/.*?\)/g);
-                if (archiveMatches && archiveMatches.length > 0) {
-                    html += '<div class="archive-links">';
-                    html += '<h3>历史归档</h3>';
-                    
-                    archiveMatches.forEach(link => {
-                        const textMatch = link.match(/\[(.*?)\]/);
-                        const urlMatch = link.match(/\]\((.*?)\)/);
-                        
-                        if (textMatch && urlMatch) {
-                            html += `<a href="${urlMatch[1]}" class="archive-link">${textMatch[1]}</a> `;
-                        }
-                    });
-                    
-                    html += '</div>';
-                }
-                
-                wallpaperContainer.innerHTML = html;
+                // 这里可以添加更复杂的解析逻辑来提取README中的壁纸信息
+                // 目前先显示一个提示
+                grid.innerHTML = `
+                    <div style="text-align: center; grid-column: 1 / -1;">
+                        <p>壁纸列表正在更新中...</p>
+                        <p>请查看 <a href="README.md">README.md</a> 获取完整的壁纸列表</p>
+                    </div>
+                `;
                 
             } catch (error) {
                 console.error('加载壁纸失败:', error);
