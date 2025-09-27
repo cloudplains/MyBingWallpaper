@@ -50,53 +50,38 @@
             padding: 40px;
             color: #666;
         }
-        /* 表格样式 - 完全模仿markdown表格 */
-        .wallpaper-table {
+        /* 最简单的表格样式 */
+        .simple-table {
             width: 100%;
             border-collapse: collapse;
-            margin: 20px 0;
         }
-        .wallpaper-table th,
-        .wallpaper-table td {
-            padding: 12px 15px;
-            text-align: left;
+        .simple-table td {
+            padding: 10px;
             border: 1px solid #ddd;
-        }
-        .wallpaper-table th {
-            background-color: #f8f9fa;
-            font-weight: bold;
-            color: #333;
-        }
-        .wallpaper-table tr:nth-child(even) {
-            background-color: #f8f9fa;
-        }
-        .wallpaper-table tr:hover {
-            background-color: #f1f3f4;
+            vertical-align: top;
+            text-align: center;
         }
         .wallpaper-image {
-            width: 200px;
-            height: 120px;
+            width: 300px;
+            height: 180px;
             object-fit: cover;
             border-radius: 4px;
             cursor: pointer;
-            transition: transform 0.2s;
-        }
-        .wallpaper-image:hover {
-            transform: scale(1.05);
         }
         .wallpaper-date {
             font-weight: bold;
+            margin: 5px 0;
             color: #333;
         }
         .download-link {
             display: inline-block;
             background: #007cba;
             color: white;
-            padding: 6px 12px;
+            padding: 5px 10px;
             text-decoration: none;
             border-radius: 4px;
             font-size: 14px;
-            transition: background 0.2s;
+            margin-top: 5px;
         }
         .download-link:hover {
             background: #005a87;
@@ -105,44 +90,15 @@
             margin-top: 30px;
             padding-top: 20px;
             border-top: 1px solid #eee;
-        }
-        .archive-links {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            justify-content: center;
+            text-align: center;
         }
         .archive-links a {
             color: #007cba;
             text-decoration: none;
-            padding: 5px 10px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            transition: all 0.2s;
+            margin: 0 5px;
         }
         .archive-links a:hover {
-            background: #f0f8ff;
-            border-color: #007cba;
-        }
-        .error-message {
-            text-align: center;
-            padding: 40px;
-            color: #d32f2f;
-            background: #ffebee;
-            border-radius: 4px;
-        }
-        /* 响应式设计 */
-        @media (max-width: 768px) {
-            .wallpaper-container {
-                padding: 10px;
-            }
-            .wallpaper-table {
-                font-size: 14px;
-            }
-            .wallpaper-image {
-                width: 150px;
-                height: 90px;
-            }
+            text-decoration: underline;
         }
     </style>
 </head>
@@ -173,47 +129,31 @@
                 
                 const text = await response.text();
                 
-                // 解析README.md内容，提取壁纸信息
-                const wallpaperData = parseReadmeContent(text);
+                // 直接解析表格内容
+                const wallpapers = parseTableContent(text);
                 
                 // 更新页面显示
-                displayWallpapers(wallpaperData);
+                displayWallpapers(wallpapers);
                 
             } catch (error) {
                 console.error('加载壁纸失败:', error);
-                showError('加载失败，请刷新页面重试。');
+                document.getElementById('wallpaper-container').innerHTML = 
+                    '<div style="text-align:center;padding:40px;color:red;">加载失败，请刷新页面重试。</div>';
             }
         }
         
-        // 解析README.md内容 - 针对表格格式
-        function parseReadmeContent(text) {
+        // 直接解析表格内容
+        function parseTableContent(text) {
             const wallpapers = [];
-            
-            // 解析表格数据
-            // 匹配格式: | ![描述](缩略图URL)日期 [download 4k](下载URL) |
             const lines = text.split('\n');
-            let inTable = false;
             
             for (let i = 0; i < lines.length; i++) {
                 const line = lines[i].trim();
                 
-                // 检测表格开始
-                if (line.startsWith('| :-') || line.startsWith('| -')) {
-                    inTable = true;
-                    continue;
-                }
-                
-                // 检测表格结束
-                if (inTable && (line === '' || !line.startsWith('|'))) {
-                    inTable = false;
-                    continue;
-                }
-                
-                // 解析表格行
-                if (inTable && line.startsWith('|') && !line.startsWith('| :-')) {
-                    // 提取图片URL、日期和下载链接
+                // 匹配表格行格式: |日期 [download 4k](URL)|
+                if (line.startsWith('| && line.includes('download 4k')) {
                     const imgMatch = line.match(/!\[\]\((https:\/\/[^)]+)\)/);
-                    const dateMatch = line.match/(\d{4}-\d{2}-\d{2})/);
+                    const dateMatch = line.match(/(\d{4}-\d{2}-\d{2})/);
                     const downloadMatch = line.match(/\[download 4k\]\((https:\/\/[^)]+)\)/);
                     
                     if (imgMatch && dateMatch) {
@@ -226,44 +166,14 @@
                 }
             }
             
-            // 如果表格解析失败，尝试备用解析方法
-            if (wallpapers.length === 0) {
-                console.log('表格解析失败，尝试备用解析方法');
-                const tableRegex = /\|!\[\]\((https:\/\/cn\.bing\.com\/th\?id=OHR\.[^)]+)\)(\d{4}-\d{2}-\d{2}) \[download 4k\]\(([^)]+)\)\|/g;
-                let match;
-                
-                while ((match = tableRegex.exec(text)) !== null) {
-                    wallpapers.push({
-                        thumbnail: match[1],
-                        date: match[2],
-                        downloadUrl: match[3]
-                    });
-                }
-            }
-            
-            // 提取归档链接
-            const archives = [];
-            const archiveRegex = /\[(\d{4}-\d{2})\]\((\/picture\/\d{4}-\d{2}\/)\)/g;
-            let archiveMatch;
-            
-            while ((archiveMatch = archiveRegex.exec(text)) !== null) {
-                archives.push({
-                    text: archiveMatch[1],
-                    link: archiveMatch[2]
-                });
-            }
-            
-            return {
-                wallpapers: wallpapers,
-                archives: archives
-            };
+            return wallpapers;
         }
         
-        // 显示壁纸到页面 - 使用表格格式
-        function displayWallpapers(data) {
+        // 显示壁纸到页面
+        function displayWallpapers(wallpapers) {
             const container = document.getElementById('wallpaper-container');
             
-            if (!data.wallpapers || data.wallpapers.length === 0) {
+            if (!wallpapers || wallpapers.length === 0) {
                 container.innerHTML = `
                     <div class="loading">
                         <p>壁纸列表正在更新中...</p>
@@ -273,72 +183,54 @@
                 return;
             }
             
-            let html = `
-                <table class="wallpaper-table">
-                    <thead>
-                        <tr>
-                            <th>缩略图</th>
-                            <th>日期</th>
-                            <th>操作</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-            `;
+            // 创建3列的表格
+            let html = '<table class="simple-table">';
             
-            // 添加每个壁纸行
-            data.wallpapers.forEach(wallpaper => {
-                const imageUrl = wallpaper.downloadUrl || wallpaper.thumbnail.replace('&w=384&h=216', '');
-                html += `
-                    <tr>
-                        <td>
-                            <a href="${imageUrl}" target="_blank">
-                                <img src="${wallpaper.thumbnail}" 
-                                     alt="Bing壁纸 ${wallpaper.date}" 
-                                     class="wallpaper-image"
-                                     onerror="this.onerror=null; this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjEyMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZGRkIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzk5OSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPkJpbmcgJHt3YWxscGFwZXIuZGF0ZX08L3RleHQ+PC9zdmc+'">
-                            </a>
-                        </td>
-                        <td class="wallpaper-date">${wallpaper.date}</td>
-                        <td>
-                            ${wallpaper.downloadUrl ? 
-                                `<a href="${wallpaper.downloadUrl}" class="download-link" target="_blank">下载 4K</a>` : 
-                                '<span style="color:#999;">暂无链接</span>'
-                            }
-                        </td>
-                    </tr>
-                `;
-            });
-            
-            html += `
-                    </tbody>
-                </table>
-            `;
-            
-            // 添加归档链接
-            if (data.archives && data.archives.length > 0) {
-                html += `
-                    <div class="archive-section">
-                        <h3 style="text-align: center; margin-bottom: 15px;">历史归档</h3>
-                        <div class="archive-links">
-                `;
+            // 每行3个壁纸
+            for (let i = 0; i < wallpapers.length; i += 3) {
+                html += '<tr>';
                 
-                data.archives.forEach(archive => {
-                    html += `<a href="${archive.link}">${archive.text}</a>`;
-                });
+                for (let j = 0; j < 3; j++) {
+                    const index = i + j;
+                    if (index < wallpapers.length) {
+                        const wp = wallpapers[index];
+                        const imageUrl = wp.downloadUrl || wp.thumbnail;
+                        
+                        html += `
+                            <td>
+                                <a href="${imageUrl}" target="_blank">
+                                    
+                                </a>
+                                <div class="wallpaper-date">${wp.date}</div>
+                                <a href="${imageUrl}" class="download-link" target="_blank">下载 4K</a>
+                            </td>
+                        `;
+                    } else {
+                        html += '<td></td>';
+                    }
+                }
                 
-                html += `
-                        </div>
-                    </div>
-                `;
+                html += '</tr>';
             }
             
+            html += '</table>';
+            
+            // 添加归档链接
+            html += `
+                <div class="archive-section">
+                    <h3>历史归档</h3>
+                    <div class="archive-links">
+                        <a href="/picture/2025-09/">2025-09</a> | 
+                        <a href="/picture/2025-08/">2025-08</a> | 
+                        <a href="/picture/2025-07/">2025-07</a> | 
+                        <a href="/picture/2025-06/">2025-06</a> | 
+                        <a href="/picture/2025-05/">2025-05</a> | 
+                        <a href="/picture/2025-04/">2025-04</a>
+                    </div>
+                </div>
+            `;
+            
             container.innerHTML = html;
-        }
-        
-        // 显示错误信息
-        function showError(message) {
-            document.getElementById('wallpaper-container').innerHTML = 
-                `<div class="error-message"><p>${message}</p></div>`;
         }
         
         // 页面加载完成后执行
