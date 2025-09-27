@@ -43,13 +43,6 @@
             margin: 10px 0;
             color: #333;
         }
-        .description {
-            color: #666;
-            font-size: 14px;
-            margin-bottom: 10px;
-            height: 40px;
-            overflow: hidden;
-        }
         .download-link {
             display: inline-block;
             background: #007cba;
@@ -76,6 +69,19 @@
             background: #ffebee;
             border-radius: 8px;
         }
+        .archive-links {
+            text-align: center;
+            margin-top: 30px;
+            padding: 20px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .archive-links a {
+            margin: 0 5px;
+            color: #007cba;
+            text-decoration: none;
+        }
     </style>
 </head>
 <body>
@@ -93,65 +99,39 @@
     </div>
 
     <script>
-        // 示例壁纸数据 - 在实际应用中，这些数据应该从API或文件中获取
-        const sampleWallpapers = [
-            {
-                date: "2024-03-21",
-                imageUrl: "https://www.bing.com/th?id=OHR.ShanghaiLinping_ZH-CN1234567890_1920x1080.jpg",
-                description: "上海临港新城的美丽景色",
-                downloadUrl: "https://www.bing.com/th?id=OHR.ShanghaiLinping_ZH-CN1234567890_UHD.jpg"
-            },
-            {
-                date: "2024-03-20",
-                imageUrl: "https://www.bing.com/th?id=OHR.GreatWallSpring_ZH-CN1234567891_1920x1080.jpg",
-                description: "春季的长城风光",
-                downloadUrl: "https://www.bing.com/th?id=OHR.GreatWallSpring_ZH-CN1234567891_UHD.jpg"
-            },
-            {
-                date: "2024-03-19",
-                imageUrl: "https://www.bing.com/th?id=OHR.WestLakeSpring_ZH-CN1234567892_1920x1080.jpg",
-                description: "杭州西湖春色",
-                downloadUrl: "https://www.bing.com/th?id=OHR.WestLakeSpring_ZH-CN1234567892_UHD.jpg"
-            },
-            {
-                date: "2024-03-18",
-                imageUrl: "https://www.bing.com/th?id=OHR.GuilinLandscape_ZH-CN1234567893_1920x1080.jpg",
-                description: "桂林山水甲天下",
-                downloadUrl: "https://www.bing.com/th?id=OHR.GuilinLandscape_ZH-CN1234567893_UHD.jpg"
-            },
-            {
-                date: "2024-03-17",
-                imageUrl: "https://www.bing.com/th?id=OHR.TulipFields_ZH-CN1234567894_1920x1080.jpg",
-                description: "荷兰郁金香花田",
-                downloadUrl: "https://www.bing.com/th?id=OHR.TulipFields_ZH-CN1234567894_UHD.jpg"
-            },
-            {
-                date: "2024-03-16",
-                imageUrl: "https://www.bing.com/th?id=OHR.NorthernLights_ZH-CN1234567895_1920x1080.jpg",
-                description: "北极光奇观",
-                downloadUrl: "https://www.bing.com/th?id=OHR.NorthernLights_ZH-CN1234567895_UHD.jpg"
-            }
-        ];
-
-        // 从示例数据加载壁纸
-        function loadWallpapers() {
+        // 从README.md中提取壁纸信息
+        async function loadWallpapers() {
             try {
+                const response = await fetch('README.md');
+                const text = await response.text();
+                
+                // 解析README.md内容，提取壁纸数据
+                const wallpapers = parseWallpapersFromReadme(text);
+                
                 const wallpaperContainer = document.getElementById('wallpaper-container');
+                
+                if (wallpapers.length === 0) {
+                    wallpaperContainer.innerHTML = '<div class="error"><p>未找到壁纸数据，请检查README.md格式。</p></div>';
+                    return;
+                }
                 
                 // 创建网格容器
                 const grid = document.createElement('div');
                 grid.className = 'wallpaper-grid';
                 
                 // 为每个壁纸创建项目
-                sampleWallpapers.forEach(wallpaper => {
+                wallpapers.forEach(wallpaper => {
                     const item = document.createElement('div');
                     item.className = 'wallpaper-item';
                     
+                    // 提取高清图片URL（将小图URL转换为高清URL）
+                    const hdImageUrl = wallpaper.imageUrl.replace(/&w=\d+&h=\d+/, '&w=1000');
+                    
                     item.innerHTML = `
-                        <img src="${wallpaper.imageUrl}" alt="${wallpaper.description}" onerror="this.src='https://via.placeholder.com/300x200?text=图片加载失败'">
+                        <img src="${wallpaper.imageUrl}" alt="${wallpaper.date}" 
+                             onerror="this.src='https://via.placeholder.com/300x200?text=图片加载失败'">
                         <div class="date">${wallpaper.date}</div>
-                        <div class="description">${wallpaper.description}</div>
-                        <a href="${wallpaper.downloadUrl}" class="download-link" target="_blank">下载高清壁纸</a>
+                        <a href="${wallpaper.downloadUrl}" class="download-link" target="_blank">下载4K壁纸</a>
                     `;
                     
                     grid.appendChild(item);
@@ -161,6 +141,9 @@
                 wallpaperContainer.innerHTML = '';
                 wallpaperContainer.appendChild(grid);
                 
+                // 添加归档链接
+                addArchiveLinks(text, wallpaperContainer);
+                
             } catch (error) {
                 console.error('加载壁纸失败:', error);
                 document.getElementById('wallpaper-container').innerHTML = 
@@ -168,10 +151,40 @@
             }
         }
         
-        // 模拟加载延迟
-        document.addEventListener('DOMContentLoaded', () => {
-            setTimeout(loadWallpapers, 1000); // 延迟1秒显示，模拟加载过程
-        });
+        // 解析README.md中的壁纸数据
+        function parseWallpapersFromReadme(text) {
+            const wallpapers = [];
+            
+            // 使用正则表达式匹配表格行中的壁纸数据
+            const rowRegex = /\|!\[\]\((https[^)]+)\)(\d{4}-\d{2}-\d{2})\s+\[download 4k\]\((https[^)]+)\)\|/g;
+            
+            let match;
+            while ((match = rowRegex.exec(text)) !== null) {
+                wallpapers.push({
+                    imageUrl: match[1],
+                    date: match[2],
+                    downloadUrl: match[3]
+                });
+            }
+            
+            return wallpapers;
+        }
+        
+        // 添加归档链接
+        function addArchiveLinks(text, container) {
+            // 查找归档链接部分
+            const archiveSection = text.match(/### 历史归档：\s*([\s\S]*?)(?=\n##|\n#|$)/);
+            
+            if (archiveSection && archiveSection[1]) {
+                const archiveDiv = document.createElement('div');
+                archiveDiv.className = 'archive-links';
+                archiveDiv.innerHTML = '<h3>历史归档</h3>' + archiveSection[1].replace(/\n/g, '<br>');
+                container.appendChild(archiveDiv);
+            }
+        }
+        
+        // 页面加载完成后执行
+        document.addEventListener('DOMContentLoaded', loadWallpapers);
     </script>
 </body>
 </html>
