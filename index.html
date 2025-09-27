@@ -11,84 +11,124 @@
             margin: 0 auto;
             padding: 20px;
             background-color: #f5f5f5;
+            line-height: 1.6;
         }
         .header {
             text-align: center;
             margin-bottom: 30px;
+            padding: 20px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .header h1 {
+            margin: 0 0 10px 0;
+            color: #333;
+        }
+        .header p {
+            margin: 5px 0;
+            color: #666;
+        }
+        .header a {
+            color: #007cba;
+            text-decoration: none;
+            margin: 0 5px;
+        }
+        .header a:hover {
+            text-decoration: underline;
+        }
+        .wallpaper-container {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            min-height: 300px;
+        }
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
         }
         .wallpaper-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
             gap: 20px;
+            margin-bottom: 30px;
         }
         .wallpaper-item {
-            background: white;
+            border: 1px solid #eee;
             border-radius: 8px;
-            padding: 15px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-            transition: transform 0.2s;
+            overflow: hidden;
+            transition: transform 0.2s, box-shadow 0.2s;
         }
         .wallpaper-item:hover {
-            transform: translateY(-5px);
+            transform: translateY(-2px);
             box-shadow: 0 5px 15px rgba(0,0,0,0.1);
         }
-        .wallpaper-item img {
+        .wallpaper-image {
             width: 100%;
-            height: 200px;
+            height: 180px;
             object-fit: cover;
-            border-radius: 4px;
+            display: block;
         }
-        .date {
+        .wallpaper-info {
+            padding: 15px;
+        }
+        .wallpaper-date {
             font-weight: bold;
-            margin: 10px 0;
+            margin-bottom: 10px;
             color: #333;
         }
-        .description {
-            font-size: 14px;
-            color: #666;
-            margin-bottom: 10px;
-            height: 40px;
-            overflow: hidden;
-        }
-        .download-link {
+        .wallpaper-link {
             display: inline-block;
             background: #007cba;
             color: white;
-            padding: 5px 10px;
+            padding: 8px 15px;
             text-decoration: none;
             border-radius: 4px;
             font-size: 14px;
             transition: background 0.2s;
         }
-        .download-link:hover {
+        .wallpaper-link:hover {
             background: #005a87;
         }
-        .loading {
-            text-align: center;
-            padding: 40px;
-            font-size: 18px;
-            color: #666;
+        .archive-section {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
         }
-        .error {
+        .archive-links {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+        }
+        .archive-links a {
+            color: #007cba;
+            text-decoration: none;
+            padding: 5px 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            transition: all 0.2s;
+        }
+        .archive-links a:hover {
+            background: #f0f8ff;
+            border-color: #007cba;
+        }
+        .error-message {
             text-align: center;
             padding: 40px;
             color: #d32f2f;
+            background: #ffebee;
+            border-radius: 4px;
         }
-        .archive-links {
+        .fallback-message {
             text-align: center;
-            margin-top: 30px;
-            padding: 15px;
-            background: white;
-            border-radius: 8px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-        }
-        .archive-links a {
-            margin: 0 5px;
-            color: #007cba;
-            text-decoration: none;
-        }
-        .archive-links a:hover {
-            text-decoration: underline;
+            padding: 20px;
+            background: #fff3cd;
+            border-radius: 4px;
+            color: #856404;
+            margin-top: 20px;
         }
     </style>
 </head>
@@ -102,9 +142,10 @@
         </p>
     </div>
     
-    <div id="wallpaper-container">
+    <div class="wallpaper-container" id="wallpaper-container">
         <div class="loading">
-            <p>正在加载最新壁纸...</p>
+            <p>壁纸列表正在更新中...</p>
+            <p>请查看 <a href="README.md">README.md</a> 获取完整的壁纸列表</p>
         </div>
     </div>
 
@@ -113,6 +154,10 @@
         async function loadWallpapers() {
             try {
                 const response = await fetch('README.md');
+                if (!response.ok) {
+                    throw new Error('无法读取README.md文件');
+                }
+                
                 const text = await response.text();
                 
                 // 解析README.md内容，提取壁纸信息
@@ -123,7 +168,7 @@
                 
             } catch (error) {
                 console.error('加载壁纸失败:', error);
-                showError();
+                showError('加载失败，请刷新页面重试。');
             }
         }
         
@@ -131,48 +176,57 @@
         function parseReadmeContent(text) {
             const wallpapers = [];
             
-            // 使用正则表达式匹配壁纸信息
-            const wallpaperRegex = /!\[\]\((.*?)\)(\d{4}-\d{2}-\d{2}) \[download 4k\]\((.*?)\)/g;
-            let match;
+            // 更灵活的正则表达式匹配壁纸信息
+            // 匹配格式: ![描述](缩略图URL)日期 [download 4k](下载URL)
+            const lines = text.split('\n');
             
-            while ((match = wallpaperRegex.exec(text)) !== null) {
-                wallpapers.push({
-                    thumbnail: match[1],
-                    date: match[2],
-                    downloadUrl: match[3]
-                });
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i].trim();
+                
+                // 匹配图片标记和日期
+                const imgDateMatch = line.match(/!\[.*?\]\((.*?)\)\s*(\d{4}-\d{2}-\d{2})/);
+                if (imgDateMatch) {
+                    const thumbnailUrl = imgDateMatch[1];
+                    const date = imgDateMatch[2];
+                    
+                    // 查找同一行或下一行的下载链接
+                    let downloadUrl = '';
+                    const downloadMatch = line.match(/\[download 4k\]\((.*?)\)/);
+                    if (downloadMatch) {
+                        downloadUrl = downloadMatch[1];
+                    } else if (i + 1 < lines.length) {
+                        // 检查下一行
+                        const nextLine = lines[i + 1].trim();
+                        const nextLineMatch = nextLine.match(/\[download 4k\]\((.*?)\)/);
+                        if (nextLineMatch) {
+                            downloadUrl = nextLineMatch[1];
+                        }
+                    }
+                    
+                    if (thumbnailUrl && date) {
+                        wallpapers.push({
+                            thumbnail: thumbnailUrl,
+                            date: date,
+                            downloadUrl: downloadUrl
+                        });
+                    }
+                }
             }
             
-            // 尝试提取描述信息（如果有）
-            const descriptionRegex = /Today: \[(.*?)\]\((.*?)\)/;
-            const descriptionMatch = descriptionRegex.exec(text);
-            let description = "";
-            let todayImageUrl = "";
-            
-            if (descriptionMatch) {
-                description = descriptionMatch[1];
-                todayImageUrl = descriptionMatch[2];
-            }
-            
-            // 尝试提取归档链接
-            const archiveRegex = /\[(.*?)\]\((\/picture\/.*?)\)/g;
+            // 提取归档链接
             const archives = [];
+            const archiveRegex = /\[(\d{4}-\d{2})\]\((\/picture\/\d{4}-\d{2}\/)\)/g;
             let archiveMatch;
             
             while ((archiveMatch = archiveRegex.exec(text)) !== null) {
-                // 过滤掉不符合格式的匹配项
-                if (archiveMatch[1].match(/\d{4}-\d{2}/)) {
-                    archives.push({
-                        text: archiveMatch[1],
-                        link: archiveMatch[2]
-                    });
-                }
+                archives.push({
+                    text: archiveMatch[1],
+                    link: archiveMatch[2]
+                });
             }
             
             return {
                 wallpapers: wallpapers,
-                description: description,
-                todayImageUrl: todayImageUrl,
                 archives: archives
             };
         }
@@ -181,9 +235,9 @@
         function displayWallpapers(data) {
             const container = document.getElementById('wallpaper-container');
             
-            if (data.wallpapers.length === 0) {
+            if (!data.wallpapers || data.wallpapers.length === 0) {
                 container.innerHTML = `
-                    <div style="text-align: center; grid-column: 1 / -1;">
+                    <div class="fallback-message">
                         <p>壁纸列表正在更新中...</p>
                         <p>请查看 <a href="README.md">README.md</a> 获取完整的壁纸列表</p>
                     </div>
@@ -194,13 +248,15 @@
             // 创建壁纸网格
             let html = '<div class="wallpaper-grid">';
             
-            // 添加每个壁纸项目
-            data.wallpapers.forEach(wallpaper => {
+            // 添加每个壁纸项目（最多显示12个）
+            data.wallpapers.slice(0, 12).forEach(wallpaper => {
                 html += `
                     <div class="wallpaper-item">
-                        
-                        <div class="date">${wallpaper.date}</div>
-                        <a href="${wallpaper.downloadUrl}" class="download-link" target="_blank">下载 4K</a>
+                        <img src="${wallpaper.thumbnail}" alt="Bing壁纸 ${wallpaper.date}" class="wallpaper-image" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjE4MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZGRkIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzk5OSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPkJpbmcgJHt3YWxscGFwZXIuZGF0ZX08L3RleHQ+PC9zdmc+'">
+                        <div class="wallpaper-info">
+                            <div class="wallpaper-date">${wallpaper.date}</div>
+                            ${wallpaper.downloadUrl ? `<a href="${wallpaper.downloadUrl}" class="wallpaper-link" target="_blank">Download 4K</a>` : ''}
+                        </div>
                     </div>
                 `;
             });
@@ -208,23 +264,30 @@
             html += '</div>';
             
             // 添加归档链接
-            if (data.archives.length > 0) {
-                html += `<div class="archive-links">`;
+            if (data.archives && data.archives.length > 0) {
+                html += `
+                    <div class="archive-section">
+                        <h3 style="text-align: center; margin-bottom: 15px;">历史归档</h3>
+                        <div class="archive-links">
+                `;
+                
                 data.archives.forEach(archive => {
-                    html += `<a href="${archive.link}">${archive.text}</a> | `;
+                    html += `<a href="${archive.link}">${archive.text}</a>`;
                 });
-                // 移除最后一个"|"
-                html = html.slice(0, -2);
-                html += `</div>`;
+                
+                html += `
+                        </div>
+                    </div>
+                `;
             }
             
             container.innerHTML = html;
         }
         
         // 显示错误信息
-        function showError() {
+        function showError(message) {
             document.getElementById('wallpaper-container').innerHTML = 
-                '<div class="error"><p>加载壁纸失败，请刷新页面重试。</p></div>';
+                `<div class="error-message"><p>${message}</p></div>`;
         }
         
         // 页面加载完成后执行
