@@ -26,6 +26,11 @@
             border-radius: 8px;
             padding: 15px;
             box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease;
+        }
+        .wallpaper-item:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
         }
         .wallpaper-item img {
             width: 100%;
@@ -36,15 +41,26 @@
         .date {
             font-weight: bold;
             margin: 10px 0;
+            color: #333;
         }
         .download-link {
             display: inline-block;
             background: #007cba;
             color: white;
-            padding: 5px 10px;
+            padding: 8px 15px;
             text-decoration: none;
             border-radius: 4px;
             font-size: 14px;
+            transition: background 0.3s ease;
+        }
+        .download-link:hover {
+            background: #005a87;
+        }
+        .loading {
+            text-align: center;
+            padding: 40px;
+            font-size: 18px;
+            color: #666;
         }
     </style>
 </head>
@@ -59,8 +75,7 @@
     </div>
     
     <div id="wallpaper-container">
-        <!-- 壁纸内容将由JavaScript动态加载 -->
-        <p>正在加载最新壁纸...</p>
+        <div class="loading">正在加载最新壁纸...</div>
     </div>
 
     <script>
@@ -70,26 +85,101 @@
                 const response = await fetch('README.md');
                 const text = await response.text();
                 
-                // 简单的解析逻辑，提取图片信息
-                const wallpaperContainer = document.getElementById('wallpaper-container');
-                wallpaperContainer.innerHTML = '<div class="wallpaper-grid" id="wallpaper-grid"></div>';
+                // 解析README.md中的壁纸表格
+                const wallpapers = parseWallpapersFromMarkdown(text);
                 
+                const wallpaperContainer = document.getElementById('wallpaper-container');
+                
+                if (wallpapers.length === 0) {
+                    wallpaperContainer.innerHTML = `
+                        <div style="text-align: center; padding: 40px;">
+                            <p>暂无壁纸数据</p>
+                            <p>请查看 <a href="README.md">README.md</a> 获取完整的壁纸列表</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                // 创建网格容器
+                wallpaperContainer.innerHTML = '<div class="wallpaper-grid" id="wallpaper-grid"></div>';
                 const grid = document.getElementById('wallpaper-grid');
                 
-                // 这里可以添加更复杂的解析逻辑来提取README中的壁纸信息
-                // 目前先显示一个提示
-                grid.innerHTML = `
-                    <div style="text-align: center; grid-column: 1 / -1;">
-                        <p>壁纸列表正在更新中...</p>
-                        <p>请查看 <a href="README.md">README.md</a> 获取完整的壁纸列表</p>
-                    </div>
-                `;
+                // 添加壁纸项
+                wallpapers.forEach(wallpaper => {
+                    const item = createWallpaperItem(wallpaper);
+                    grid.appendChild(item);
+                });
                 
             } catch (error) {
                 console.error('加载壁纸失败:', error);
                 document.getElementById('wallpaper-container').innerHTML = 
-                    '<p>加载壁纸失败，请刷新页面重试。</p>';
+                    '<div class="loading">加载壁纸失败，请刷新页面重试。</div>';
             }
+        }
+        
+        // 解析Markdown中的壁纸信息
+        function parseWallpapersFromMarkdown(markdownText) {
+            const wallpapers = [];
+            
+            // 匹配表格行，每行包含3个壁纸
+            const tableRowRegex = /\|(.+?)\|(.+?)\|(.+?)\|/g;
+            const rows = markdownText.match(tableRowRegex);
+            
+            if (!rows) return wallpapers;
+            
+            // 跳过表头行
+            for (let i = 2; i < rows.length; i++) {
+                const row = rows[i];
+                const cells = row.split('|').slice(1, -1); // 去掉首尾的空元素
+                
+                cells.forEach(cell => {
+                    const wallpaper = parseWallpaperFromCell(cell.trim());
+                    if (wallpaper) {
+                        wallpapers.push(wallpaper);
+                    }
+                });
+            }
+            
+            return wallpapers;
+        }
+        
+        // 解析单个单元格中的壁纸信息
+        function parseWallpaperFromCell(cellContent) {
+            // 匹配图片URL
+            const imgRegex = /!\[\]\((https:\/\/cn\.bing\.com\/th\?id=[^)]+)\)/;
+            const imgMatch = cellContent.match(imgRegex);
+            if (!imgMatch) return null;
+            
+            // 匹配日期
+            const dateRegex = /(\d{4}-\d{2}-\d{2})/;
+            const dateMatch = cellContent.match(dateRegex);
+            
+            // 匹配下载链接
+            const downloadRegex = /\[download 4k\]\((https:\/\/cn\.bing\.com\/th\?id=[^)]+)\)/;
+            const downloadMatch = cellContent.match(downloadRegex);
+            
+            return {
+                thumbnailUrl: imgMatch[1],
+                date: dateMatch ? dateMatch[1] : '未知日期',
+                downloadUrl: downloadMatch ? downloadMatch[1] : imgMatch[1] // 如果没有单独下载链接，使用缩略图链接
+            };
+        }
+        
+        // 创建壁纸项HTML
+        function createWallpaperItem(wallpaper) {
+            const item = document.createElement('div');
+            item.className = 'wallpaper-item';
+            
+            item.innerHTML = `
+                <img src="${wallpaper.thumbnailUrl}" alt="Bing壁纸 ${wallpaper.date}" 
+                     onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZGRkIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzk5OSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPua1geWwj+WbvueJhzwvdGV4dD48L3N2Zz4='">
+                <div class="date">${wallpaper.date}</div>
+                <a href="${wallpaper.downloadUrl}" class="download-link" target="_blank" download="bing-wallpaper-${wallpaper.date}.jpg">
+                    下载 4K 壁纸
+                </a>
+            `;
+            
+            return item;
         }
         
         // 页面加载完成后执行
