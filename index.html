@@ -26,11 +26,6 @@
             border-radius: 8px;
             padding: 15px;
             box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-            transition: transform 0.3s ease;
-        }
-        .wallpaper-item:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
         }
         .wallpaper-item img {
             width: 100%;
@@ -41,7 +36,6 @@
         .date {
             font-weight: bold;
             margin: 10px 0;
-            color: #333;
         }
         .download-link {
             display: inline-block;
@@ -51,36 +45,6 @@
             text-decoration: none;
             border-radius: 4px;
             font-size: 14px;
-            transition: background 0.3s ease;
-        }
-        .download-link:hover {
-            background: #005a87;
-        }
-        .loading {
-            text-align: center;
-            padding: 40px;
-            font-size: 18px;
-            color: #666;
-        }
-        .error {
-            text-align: center;
-            padding: 40px;
-            color: #d32f2f;
-            background: #ffebee;
-            border-radius: 8px;
-        }
-        .archive-links {
-            text-align: center;
-            margin-top: 30px;
-            padding: 20px;
-            background: white;
-            border-radius: 8px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-        }
-        .archive-links a {
-            margin: 0 5px;
-            color: #007cba;
-            text-decoration: none;
         }
     </style>
 </head>
@@ -95,7 +59,8 @@
     </div>
     
     <div id="wallpaper-container">
-        <div class="loading">正在加载最新壁纸...</div>
+        <!-- 壁纸内容将由JavaScript动态加载 -->
+        <p>正在加载最新壁纸...</p>
     </div>
 
     <script>
@@ -105,81 +70,25 @@
                 const response = await fetch('README.md');
                 const text = await response.text();
                 
-                // 解析README.md内容，提取壁纸数据
-                const wallpapers = parseWallpapersFromReadme(text);
-                
+                // 简单的解析逻辑，提取图片信息
                 const wallpaperContainer = document.getElementById('wallpaper-container');
+                wallpaperContainer.innerHTML = '<div class="wallpaper-grid" id="wallpaper-grid"></div>';
                 
-                if (wallpapers.length === 0) {
-                    wallpaperContainer.innerHTML = '<div class="error"><p>未找到壁纸数据，请检查README.md格式。</p></div>';
-                    return;
-                }
+                const grid = document.getElementById('wallpaper-grid');
                 
-                // 创建网格容器
-                const grid = document.createElement('div');
-                grid.className = 'wallpaper-grid';
-                
-                // 为每个壁纸创建项目
-                wallpapers.forEach(wallpaper => {
-                    const item = document.createElement('div');
-                    item.className = 'wallpaper-item';
-                    
-                    // 提取高清图片URL（将小图URL转换为高清URL）
-                    const hdImageUrl = wallpaper.imageUrl.replace(/&w=\d+&h=\d+/, '&w=1000');
-                    
-                    item.innerHTML = `
-                        <img src="${wallpaper.imageUrl}" alt="${wallpaper.date}" 
-                             onerror="this.src='https://via.placeholder.com/300x200?text=图片加载失败'">
-                        <div class="date">${wallpaper.date}</div>
-                        <a href="${wallpaper.downloadUrl}" class="download-link" target="_blank">下载4K壁纸</a>
-                    `;
-                    
-                    grid.appendChild(item);
-                });
-                
-                // 清空容器并添加网格
-                wallpaperContainer.innerHTML = '';
-                wallpaperContainer.appendChild(grid);
-                
-                // 添加归档链接
-                addArchiveLinks(text, wallpaperContainer);
+                // 这里可以添加更复杂的解析逻辑来提取README中的壁纸信息
+                // 目前先显示一个提示
+                grid.innerHTML = `
+                    <div style="text-align: center; grid-column: 1 / -1;">
+                        <p>壁纸列表正在更新中...</p>
+                        <p>请查看 <a href="README.md">README.md</a> 获取完整的壁纸列表</p>
+                    </div>
+                `;
                 
             } catch (error) {
                 console.error('加载壁纸失败:', error);
                 document.getElementById('wallpaper-container').innerHTML = 
-                    '<div class="error"><p>加载壁纸失败，请刷新页面重试。</p><p>错误详情: ' + error.message + '</p></div>';
-            }
-        }
-        
-        // 解析README.md中的壁纸数据
-        function parseWallpapersFromReadme(text) {
-            const wallpapers = [];
-            
-            // 使用正则表达式匹配表格行中的壁纸数据
-            const rowRegex = /\|!\[\]\((https[^)]+)\)(\d{4}-\d{2}-\d{2})\s+\[download 4k\]\((https[^)]+)\)\|/g;
-            
-            let match;
-            while ((match = rowRegex.exec(text)) !== null) {
-                wallpapers.push({
-                    imageUrl: match[1],
-                    date: match[2],
-                    downloadUrl: match[3]
-                });
-            }
-            
-            return wallpapers;
-        }
-        
-        // 添加归档链接
-        function addArchiveLinks(text, container) {
-            // 查找归档链接部分
-            const archiveSection = text.match(/### 历史归档：\s*([\s\S]*?)(?=\n##|\n#|$)/);
-            
-            if (archiveSection && archiveSection[1]) {
-                const archiveDiv = document.createElement('div');
-                archiveDiv.className = 'archive-links';
-                archiveDiv.innerHTML = '<h3>历史归档</h3>' + archiveSection[1].replace(/\n/g, '<br>');
-                container.appendChild(archiveDiv);
+                    '<p>加载壁纸失败，请刷新页面重试。</p>';
             }
         }
         
