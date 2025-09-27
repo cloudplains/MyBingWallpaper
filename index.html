@@ -16,6 +16,32 @@
             text-align: center;
             margin-bottom: 30px;
         }
+        .today-wallpaper {
+            text-align: center;
+            margin-bottom: 40px;
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        .today-wallpaper img {
+            max-width: 100%;
+            height: auto;
+            max-height: 500px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+        .today-title {
+            font-size: 24px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 10px;
+        }
+        .today-date {
+            font-size: 18px;
+            color: #666;
+            margin-bottom: 15px;
+        }
         .wallpaper-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
@@ -62,6 +88,13 @@
             font-size: 18px;
             color: #666;
         }
+        .section-title {
+            font-size: 22px;
+            margin: 30px 0 20px 0;
+            color: #333;
+            border-left: 4px solid #007cba;
+            padding-left: 15px;
+        }
     </style>
 </head>
 <body>
@@ -85,12 +118,12 @@
                 const response = await fetch('README.md');
                 const text = await response.text();
                 
-                // 解析README.md中的壁纸表格
-                const wallpapers = parseWallpapersFromMarkdown(text);
+                // 解析README.md中的壁纸
+                const { todayWallpaper, historyWallpapers } = parseWallpapersFromMarkdown(text);
                 
                 const wallpaperContainer = document.getElementById('wallpaper-container');
                 
-                if (wallpapers.length === 0) {
+                if (!todayWallpaper && historyWallpapers.length === 0) {
                     wallpaperContainer.innerHTML = `
                         <div style="text-align: center; padding: 40px;">
                             <p>暂无壁纸数据</p>
@@ -100,15 +133,39 @@
                     return;
                 }
                 
-                // 创建网格容器
-                wallpaperContainer.innerHTML = '<div class="wallpaper-grid" id="wallpaper-grid"></div>';
-                const grid = document.getElementById('wallpaper-grid');
+                let html = '';
                 
-                // 添加壁纸项
-                wallpapers.forEach(wallpaper => {
-                    const item = createWallpaperItem(wallpaper);
-                    grid.appendChild(item);
-                });
+                // 添加今日壁纸
+                if (todayWallpaper) {
+                    html += `
+                        <div class="today-wallpaper">
+                            <img src="${todayWallpaper.imageUrl}" alt="今日壁纸" 
+                                 onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAwIiBoZWlnaHQ9IjQ1MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZGRkIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxOCIgZmlsbD0iIzk5OSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPuWbm+Wwj+WbvueJh+Wwj+Wkp+WwjzwvdGV4dD48L3N2Zz4='">
+                            <div class="today-title">今日壁纸</div>
+                            <div class="today-date">${todayWallpaper.date || '今日'}</div>
+                            <a href="${todayWallpaper.downloadUrl}" class="download-link" target="_blank" download="bing-wallpaper-today.jpg">
+                                下载 4K 壁纸
+                            </a>
+                        </div>
+                    `;
+                }
+                
+                // 添加历史壁纸标题
+                if (historyWallpapers.length > 0) {
+                    html += `<div class="section-title">历史壁纸</div>`;
+                    html += '<div class="wallpaper-grid" id="wallpaper-grid"></div>';
+                }
+                
+                wallpaperContainer.innerHTML = html;
+                
+                // 添加历史壁纸项
+                if (historyWallpapers.length > 0) {
+                    const grid = document.getElementById('wallpaper-grid');
+                    historyWallpapers.forEach(wallpaper => {
+                        const item = createWallpaperItem(wallpaper);
+                        grid.appendChild(item);
+                    });
+                }
                 
             } catch (error) {
                 console.error('加载壁纸失败:', error);
@@ -119,28 +176,43 @@
         
         // 解析Markdown中的壁纸信息
         function parseWallpapersFromMarkdown(markdownText) {
-            const wallpapers = [];
+            const result = {
+                todayWallpaper: null,
+                historyWallpapers: []
+            };
             
-            // 匹配表格行，每行包含3个壁纸
+            // 解析今日壁纸（在表格之前的部分）
+            const todayMatch = markdownText.match(/!\[\]\((https:\/\/cn\.bing\.com\/th\?id=[^)]+&w=1000)\)/);
+            if (todayMatch) {
+                // 获取今日壁纸的高清版本（去掉&w=1000参数）
+                const todayUrl = todayMatch[1].replace('&w=1000', '&w=3840&h=2160');
+                result.todayWallpaper = {
+                    imageUrl: todayMatch[1], // 使用原始带w=1000的图片
+                    downloadUrl: todayUrl,   // 下载链接使用高清版本
+                    date: '今日'
+                };
+            }
+            
+            // 解析表格中的历史壁纸
             const tableRowRegex = /\|(.+?)\|(.+?)\|(.+?)\|/g;
             const rows = markdownText.match(tableRowRegex);
             
-            if (!rows) return wallpapers;
+            if (!rows) return result;
             
-            // 跳过表头行
+            // 跳过表头行和分隔线行（前两行）
             for (let i = 2; i < rows.length; i++) {
                 const row = rows[i];
-                const cells = row.split('|').slice(1, -1); // 去掉首尾的空元素
+                const cells = row.split('|').slice(1, -1);
                 
                 cells.forEach(cell => {
                     const wallpaper = parseWallpaperFromCell(cell.trim());
                     if (wallpaper) {
-                        wallpapers.push(wallpaper);
+                        result.historyWallpapers.push(wallpaper);
                     }
                 });
             }
             
-            return wallpapers;
+            return result;
         }
         
         // 解析单个单元格中的壁纸信息
@@ -161,7 +233,7 @@
             return {
                 thumbnailUrl: imgMatch[1],
                 date: dateMatch ? dateMatch[1] : '未知日期',
-                downloadUrl: downloadMatch ? downloadMatch[1] : imgMatch[1] // 如果没有单独下载链接，使用缩略图链接
+                downloadUrl: downloadMatch ? downloadMatch[1] : imgMatch[1].replace('&pid=hp&w=384&h=216', '&w=3840&h=2160')
             };
         }
         
