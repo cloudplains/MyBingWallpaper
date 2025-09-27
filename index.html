@@ -26,6 +26,11 @@
             border-radius: 8px;
             padding: 15px;
             box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease;
+        }
+        .wallpaper-item:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
         }
         .wallpaper-item img {
             width: 100%;
@@ -36,6 +41,14 @@
         .date {
             font-weight: bold;
             margin: 10px 0;
+            color: #333;
+        }
+        .description {
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 10px;
+            height: 40px;
+            overflow: hidden;
         }
         .download-link {
             display: inline-block;
@@ -45,6 +58,23 @@
             text-decoration: none;
             border-radius: 4px;
             font-size: 14px;
+            transition: background 0.3s ease;
+        }
+        .download-link:hover {
+            background: #005a87;
+        }
+        .loading {
+            text-align: center;
+            padding: 40px;
+            font-size: 18px;
+            color: #666;
+        }
+        .error {
+            text-align: center;
+            padding: 40px;
+            color: #d32f2f;
+            background: #ffebee;
+            border-radius: 8px;
         }
     </style>
 </head>
@@ -59,41 +89,89 @@
     </div>
     
     <div id="wallpaper-container">
-        <!-- 壁纸内容将由JavaScript动态加载 -->
-        <p>正在加载最新壁纸...</p>
+        <div class="loading">正在加载最新壁纸...</div>
     </div>
 
     <script>
-        // 从README.md中提取壁纸信息
-        async function loadWallpapers() {
+        // 示例壁纸数据 - 在实际应用中，这些数据应该从API或文件中获取
+        const sampleWallpapers = [
+            {
+                date: "2024-03-21",
+                imageUrl: "https://www.bing.com/th?id=OHR.ShanghaiLinping_ZH-CN1234567890_1920x1080.jpg",
+                description: "上海临港新城的美丽景色",
+                downloadUrl: "https://www.bing.com/th?id=OHR.ShanghaiLinping_ZH-CN1234567890_UHD.jpg"
+            },
+            {
+                date: "2024-03-20",
+                imageUrl: "https://www.bing.com/th?id=OHR.GreatWallSpring_ZH-CN1234567891_1920x1080.jpg",
+                description: "春季的长城风光",
+                downloadUrl: "https://www.bing.com/th?id=OHR.GreatWallSpring_ZH-CN1234567891_UHD.jpg"
+            },
+            {
+                date: "2024-03-19",
+                imageUrl: "https://www.bing.com/th?id=OHR.WestLakeSpring_ZH-CN1234567892_1920x1080.jpg",
+                description: "杭州西湖春色",
+                downloadUrl: "https://www.bing.com/th?id=OHR.WestLakeSpring_ZH-CN1234567892_UHD.jpg"
+            },
+            {
+                date: "2024-03-18",
+                imageUrl: "https://www.bing.com/th?id=OHR.GuilinLandscape_ZH-CN1234567893_1920x1080.jpg",
+                description: "桂林山水甲天下",
+                downloadUrl: "https://www.bing.com/th?id=OHR.GuilinLandscape_ZH-CN1234567893_UHD.jpg"
+            },
+            {
+                date: "2024-03-17",
+                imageUrl: "https://www.bing.com/th?id=OHR.TulipFields_ZH-CN1234567894_1920x1080.jpg",
+                description: "荷兰郁金香花田",
+                downloadUrl: "https://www.bing.com/th?id=OHR.TulipFields_ZH-CN1234567894_UHD.jpg"
+            },
+            {
+                date: "2024-03-16",
+                imageUrl: "https://www.bing.com/th?id=OHR.NorthernLights_ZH-CN1234567895_1920x1080.jpg",
+                description: "北极光奇观",
+                downloadUrl: "https://www.bing.com/th?id=OHR.NorthernLights_ZH-CN1234567895_UHD.jpg"
+            }
+        ];
+
+        // 从示例数据加载壁纸
+        function loadWallpapers() {
             try {
-                const response = await fetch('README.md');
-                const text = await response.text();
-                
-                // 简单的解析逻辑，提取图片信息
                 const wallpaperContainer = document.getElementById('wallpaper-container');
-                wallpaperContainer.innerHTML = '<div class="wallpaper-grid" id="wallpaper-grid"></div>';
                 
-                const grid = document.getElementById('wallpaper-grid');
+                // 创建网格容器
+                const grid = document.createElement('div');
+                grid.className = 'wallpaper-grid';
                 
-                // 这里可以添加更复杂的解析逻辑来提取README中的壁纸信息
-                // 目前先显示一个提示
-                grid.innerHTML = `
-                    <div style="text-align: center; grid-column: 1 / -1;">
-                        <p>壁纸列表正在更新中...</p>
-                        <p>请查看 <a href="README.md">README.md</a> 获取完整的壁纸列表</p>
-                    </div>
-                `;
+                // 为每个壁纸创建项目
+                sampleWallpapers.forEach(wallpaper => {
+                    const item = document.createElement('div');
+                    item.className = 'wallpaper-item';
+                    
+                    item.innerHTML = `
+                        <img src="${wallpaper.imageUrl}" alt="${wallpaper.description}" onerror="this.src='https://via.placeholder.com/300x200?text=图片加载失败'">
+                        <div class="date">${wallpaper.date}</div>
+                        <div class="description">${wallpaper.description}</div>
+                        <a href="${wallpaper.downloadUrl}" class="download-link" target="_blank">下载高清壁纸</a>
+                    `;
+                    
+                    grid.appendChild(item);
+                });
+                
+                // 清空容器并添加网格
+                wallpaperContainer.innerHTML = '';
+                wallpaperContainer.appendChild(grid);
                 
             } catch (error) {
                 console.error('加载壁纸失败:', error);
                 document.getElementById('wallpaper-container').innerHTML = 
-                    '<p>加载壁纸失败，请刷新页面重试。</p>';
+                    '<div class="error"><p>加载壁纸失败，请刷新页面重试。</p><p>错误详情: ' + error.message + '</p></div>';
             }
         }
         
-        // 页面加载完成后执行
-        document.addEventListener('DOMContentLoaded', loadWallpapers);
+        // 模拟加载延迟
+        document.addEventListener('DOMContentLoaded', () => {
+            setTimeout(loadWallpapers, 1000); // 延迟1秒显示，模拟加载过程
+        });
     </script>
 </body>
 </html>
