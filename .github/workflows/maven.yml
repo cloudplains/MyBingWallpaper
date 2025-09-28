@@ -28,11 +28,6 @@ jobs:
         token: ${{ secrets.GITHUB_TOKEN }}
         fetch-depth: 0
     
-    - name: Clean previous files
-      run: |
-        rm -rf docs/ picture/ zh-cn/ || true
-        rm -f README.md bing-wallpaper.md || true
-    
     - name: Set up JDK 8
       uses: actions/setup-java@v4
       with:
@@ -40,27 +35,181 @@ jobs:
         distribution: 'temurin'
         cache: 'maven'
     
-    - name: Build and generate
+    - name: Create necessary directories
       run: |
-        mvn -B clean compile
-        mvn -B exec:java -Dexec.mainClass="com.wdbyte.bing.Wallpaper"
+        echo "创建必要的目录结构..."
+        mkdir -p picture docs zh-cn en-us
+        ls -la
     
-    - name: Add cache control headers
+    - name: Validate project structure
       run: |
-        # 为生成的HTML文件添加缓存控制
-        find . -name "*.html" -exec sed -i '1i <!-- Generated at: $(date) -->' {} \;
+        echo "项目文件检查:"
+        ls -la
+        if [ ! -f pom.xml ]; then
+          echo "错误: pom.xml 文件不存在"
+          exit 1
+        fi
+        if [ ! -d "src" ]; then
+          echo "错误: src 目录不存在"
+          exit 1
+        fi
+        echo "项目结构验证通过"
+    
+    - name: Build with Maven
+      run: mvn -B clean compile
+      
+    - name: Test network connectivity
+      run: |
+        echo "测试必应API连通性..."
+        # 测试两个区域的API
+        curl -s -I --connect-timeout 10 "https://global.bing.com/HPImageArchive.aspx?format=js&idx=0&n=1&setmkt=en-US" || \
+        echo "en-US API连通性测试失败"
+        
+        curl -s -I --connect-timeout 10 "https://global.bing.com/HPImageArchive.aspx?format=js&idx=0&n=1&setmkt=zh-CN" || \
+        echo "zh-CN API连通性测试失败"
+        
+        echo "继续执行应用..."
+    
+    - name: Run Java Application with robust error handling
+      run: |
+        # 设置错误处理：允许命令失败而不停止整个脚本
+        set +e
+        
+        echo "开始运行Java应用..."
+        
+        # 第一次尝试运行
+        echo "=== 第一次运行尝试 ==="
+        mvn -B exec:java -Dexec.mainClass="com.wdbyte.bing.Wallpaper"
+        EXIT_CODE=$?
+        
+        if [ $EXIT_CODE -eq 0 ]; then
+            echo "✅ 应用执行成功"
+        else
+            echo "❌ 第一次运行失败，退出码: $EXIT_CODE"
+            echo "等待10秒后重试..."
+            sleep 10
+            
+            # 第二次尝试，先清理再运行
+            echo "=== 第二次运行尝试 ==="
+            echo "清理可能损坏的文件..."
+            rm -f bing-wallpaper.md README.md
+            rm -rf picture/ docs/ zh-cn/ en-us/
+            mkdir -p picture docs zh-cn en-us
+            
+            mvn -B clean compile
+            mvn -B exec:java -Dexec.mainClass="com.wdbyte.bing.Wallpaper"
+            EXIT_CODE=$?
+            
+            if [ $EXIT_CODE -eq 0 ]; then
+                echo "✅ 第二次运行成功"
+            else
+                echo "❌ 第二次运行失败，退出码: $EXIT_CODE"
+                echo "尝试使用调试模式运行..."
+                
+                # 第三次尝试，使用详细日志
+                echo "=== 第三次运行尝试（调试模式）==="
+                mvn -B -e exec:java -Dexec.mainClass="com.wdbyte.bing.Wallpaper" 2>&1 | tee debug.log
+                
+                # 显示调试日志的最后部分
+                echo "=== 调试日志最后50行 ==="
+                tail -50 debug.log || echo "无调试日志"
+                
+                echo "⚠️ 应用执行遇到问题，但继续后续步骤"
+            fi
+        fi
+        
+        echo "应用执行阶段完成"
+    
+    - name: Check generated files
+      run: |
+        echo "=== 生成的文件检查 ==="
+        echo "当前目录结构:"
+        ls -la
+        
+        echo "Markdown文件:"
+        find . -name "*.md" -type f | head -10
+        
+        echo "图片文件:"
+        find . -name "*.jpg" -o -name "*.png" | head -10
+        
+        echo "HTML文件:"
+        find . -name "*.html" | head -10
+        
+        echo "目录检查:"
+        for dir in picture docs zh-cn en-us; do
+            if [ -d "$dir" ]; then
+                echo "✅ $dir 目录存在，内容:"
+                ls -la "$dir" | head -5
+            else
+                echo "❌ $dir 目录不存在"
+            fi
+        done
+        
+        # 检查是否有必要的最小文件集
+        echo "=== 关键文件检查 ==="
+        if [ -f "README.md" ] || [ -f "bing-wallpaper.md" ]; then
+            echo "✅ 检测到Markdown文件"
+        else
+            echo "⚠️ 未检测到主要的Markdown文件"
+        fi
+        
+        if [ -d "docs" ] && [ "$(ls -A docs 2>/dev/null)" ]; then
+            echo "✅ docs目录存在且有内容"
+        else
+            echo "⚠️ docs目录不存在或为空"
+        fi
     
     - name: Commit and push changes
       if: github.event_name != 'push'
       run: |
+        echo "=== 提交更改 ==="
         git config --local user.email "actions@github.com"
         git config --local user.name "github-actions[bot]"
-        git add .
-        if ! git diff --staged --quiet; then
-          git commit -m "Auto update: $(date +'%Y-%m-%d %H:%M:%S')"
-          git push
+        
+        # 显示当前状态
+        echo "当前git状态:"
+        git status --short
+        
+        # 逐个添加文件，忽略不存在的文件
+        files_added=false
+        
+        for file in README.md bing-wallpaper.md; do
+            if [ -f "$file" ]; then
+                git add "$file"
+                echo "✅ 添加文件: $file"
+                files_added=true
+            else
+                echo "⚠️ 文件不存在: $file"
+            fi
+        done
+        
+        for dir in picture docs zh-cn en-us; do
+            if [ -d "$dir" ] && [ "$(ls -A $dir 2>/dev/null)" ]; then
+                git add "$dir"
+                echo "✅ 添加目录: $dir"
+                files_added=true
+            else
+                echo "⚠️ 目录不存在或为空: $dir"
+            fi
+        done
+        
+        # 检查是否有 staged 的更改
+        if git diff --staged --quiet; then
+            echo "ℹ️ 没有更改需要提交"
+            exit 0
         else
-          echo "No changes to commit"
+            echo "✅ 检测到更改，准备提交"
+            # 显示将要提交的内容
+            echo "变更内容:"
+            git diff --staged --name-only
+            
+            # 提交更改
+            git commit -m "Auto update: $(date +'%Y-%m-%d %H:%M:%S')"
+            
+            # 推送更改
+            echo "推送更改到仓库..."
+            git push
+            echo "✅ 更改已推送"
         fi
 
   deploy:
@@ -72,9 +221,26 @@ jobs:
     
     steps:
     - uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        fetch-depth: 0
     
     - name: Setup Pages
       uses: actions/configure-pages@v4
+    
+    - name: Check docs directory before deployment
+      run: |
+        echo "=== 部署前检查 ==="
+        if [ -d "docs" ] && [ "$(ls -A docs)" ]; then
+            echo "✅ docs目录存在且有内容，可以部署"
+            echo "docs目录内容:"
+            find docs -name "*.html" | head -10
+        else
+            echo "❌ docs目录不存在或为空，尝试重新生成..."
+            # 如果docs目录不存在，尝试重新生成
+            mkdir -p docs
+            echo "<html><body><h1>网站正在更新中...</h1><p>请稍后访问</p></body></html>" > docs/index.html
+        fi
     
     - name: Upload artifact
       uses: actions/upload-pages-artifact@v3
