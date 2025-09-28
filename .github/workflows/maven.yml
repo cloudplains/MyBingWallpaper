@@ -1,4 +1,4 @@
-﻿name: Java CI with Maven
+﻿name: Java CI with Maven and Deploy
 
 on:
   push:
@@ -9,17 +9,28 @@ on:
     - cron: '2 0 * * *'   # 每天UTC时间0点2分
   workflow_dispatch:       # 支持手动触发
 
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
+        submodules: recursive
+        fetch-depth: 0
     
     - name: Set up JDK 8
-      uses: actions/setup-java@v3
+      uses: actions/setup-java@v4
       with:
         java-version: '8'
         distribution: 'temurin'
@@ -51,7 +62,7 @@ jobs:
         ls -la docs/ 2>/dev/null || echo "docs目录不存在"
     
     - name: Commit and push changes
-      if: github.event_name != 'push'
+      if: github.event_name != 'push'  # 只在定时任务或手动触发时自动提交
       run: |
         git config --local user.email "actions@github.com"
         git config --local user.name "github-actions[bot]"
@@ -77,15 +88,40 @@ jobs:
   deploy:
     needs: build
     runs-on: ubuntu-latest
-    if: github.event_name != 'push'  # 只在定时任务或手动触发时部署
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        fetch-depth: 0
+    
+    - name: Setup Pages
+      uses: actions/configure-pages@v4
+    
+    - name: Setup Java (for docs generation)
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'temurin'
+        java-version: '8'
+    
+    - name: Rebuild docs (if needed)
+      run: |
+        # 检查 docs 目录是否存在且有内容
+        if [ -d "docs" ] && [ "$(ls -A docs)" ]; then
+          echo "Docs目录已存在，跳过重建"
+        else
+          echo "重新生成文档"
+          mvn -B exec:java -Dexec.mainClass="com.wdbyte.bing.Wallpaper"
+        fi
+    
+    - name: Upload artifact
+      uses: actions/upload-pages-artifact@v3
+      with:
+        path: ./docs
     
     - name: Deploy to GitHub Pages
-      uses: peaceiris/actions-gh-pages@v3
-      with:
-        github_token: ${{ secrets.GITHUB_TOKEN }}
-        publish_dir: ./docs
-        publish_branch: gh-pages
-        force_orphan: true
+      id: deployment
+      uses: actions/deploy-pages@v4
