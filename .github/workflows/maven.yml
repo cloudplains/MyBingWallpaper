@@ -5,9 +5,13 @@ on:
     branches: [ main ]
   schedule:
     - cron: '2 7 * * *'   # 每天中国时间15点2分 (UTC时间7点2分)
-    - cron: '2 16 * * *'  # 每天UTC时间16点2分
-    - cron: '2 0 * * *'   # 每天UTC时间0点2分
   workflow_dispatch:       # 支持手动触发
+  # 新增：当特定文件变化时也触发
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'src/**'
+      - 'pom.xml'
 
 permissions:
   contents: write
@@ -62,7 +66,9 @@ jobs:
         ls -la docs/ 2>/dev/null || echo "docs目录不存在"
     
     - name: Commit and push changes
-      if: github.event_name != 'push'  # 只在定时任务或手动触发时自动提交
+      if: |
+        github.event_name != 'push' && 
+        github.event_name != 'pull_request'
       run: |
         git config --local user.email "actions@github.com"
         git config --local user.name "github-actions[bot]"
