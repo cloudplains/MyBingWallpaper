@@ -23,10 +23,10 @@
             background-position: center;
             background-repeat: no-repeat;
             background-size: cover;
-            display: none;
+            display: none; /* 最初隐藏大图 */
         }
         .smallImg-header {
-            background-image: url("https://cn.bing.com/th?id=OHR.PeacockFeathers_EN-US0365605509_UHD.jpg&pid=hp&w=480");
+            background-image: url("https://cn.bing.com/th?id=OHR.PeacockFeathers_EN-US0365605509_UHD.jpg&pid=hp&w=480"); /* 使用小图 */
             filter: blur(15px);
             -webkit-filter: blur(15px);
             position: relative;
@@ -34,7 +34,18 @@
             background-position: center;
             background-repeat: no-repeat;
             background-size: cover;
-            transition: opacity 5s;
+            transition: opacity 5s; /* 平滑过渡效果 */
+        }
+        .bigImg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            opacity: 0;
+            border-radius: 10px;
+        }
+        .smallImg{
+            filter: blur(15px);
+            -webkit-filter: blur(15px);
         }
         .w3-tag{
             border-radius: 8px;
@@ -57,23 +68,47 @@
             color:white;
         }
     </style>
+    <script>
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?b59b4b29843942e412b704c39cc7363a";
+      var s = document.getElementsByTagName("script")[0]; 
+      s.parentNode.insertBefore(hm, s);
+    })();
+    </script>
+
 </head>
 <script>
     function headerImgloading() {
         var bgImg = document.querySelector('.bgimg-header');
         var smallImg = document.querySelector('.smallImg-header');
+        // 创建一个新的图片对象以监控加载状态
         var img = new Image();
-        img.src = 'https://cn.bing.com/th?id=OHR.PeacockFeathers_EN-US0365605509_UHD.jpg&pid=hp&w=2000';
+        img.src = 'https://cn.bing.com/th?id=OHR.PeacockFeathers_EN-US0365605509_UHD.jpg&pid=hp&w=2000'; // 从背景图中提取URL
+        // 小图逐渐变透明
         smallImg.style.opacity = 0.3;
         img.onload = function() {
+            // 当大图加载完成时，首先显示大图
             bgImg.style.display = "block";
             smallImg.style.display = "none";
         };
     }
-    window.onload = headerImgloading;
+    window.onload = headerImgloading; // 页面加载时执行
+    function imgloading(oImg) {
+        var n = 0;
+        var timer = setInterval(function () {
+            n++;
+            oImg.style.opacity = n * n / 50;
+            if (n * n >= 50) {
+                clearInterval(timer);
+            }
+            ;
+        }, 50);
+    };
 </script>
 <body>
-<div class="smallImg-header"></div>
+<div class="smallImg-header"></div> <!-- 模糊的小图 -->
 <div class="bgimg-header">
     <div class="w3-display-middle w3-padding-large w3-wide w3-text-light-grey w3-center">
         <h1 class="w3-hide-medium w3-hide-small w3-xxxlarge">Bing Wallpaper(2023-03)</h1>
@@ -93,12 +128,16 @@
     </div>
 </menu>
 
+<!-- Sidebar (hidden by default) -->
 <sidebar class="w3-sidebar w3-bar-block w3-card w3-top w3-xlarge w3-animate-left" style="display:none;z-index:2;max-width:200px;min-width:100px" id="mySidebar">
     <a href="javascript:void(0)" onclick="w3_close()" class="w3-bar-item w3-button">收起</a>
     <a href="2025-09.html" onclick="w3_close()" class="w3-bar-item w3-button w3-hover-green w3-large">2025-09</a><a href="2025-08.html" onclick="w3_close()" class="w3-bar-item w3-button w3-hover-green w3-large">2025-08</a><a href="2025-07.html" onclick="w3_close()" class="w3-bar-item w3-button w3-hover-green w3-large">2025-07</a><a href="2025-06.html" onclick="w3_close()" class="w3-bar-item w3-button w3-hover-green w3-large">2025-06</a><a href="2025-05.html" onclick="w3_close()" class="w3-bar-item w3-button w3-hover-green w3-large">2025-05</a><a href="2025-04.html" onclick="w3_close()" class="w3-bar-item w3-button w3-hover-green w3-large">2025-04</a><a href="2025-03.html" onclick="w3_close()" class="w3-bar-item w3-button w3-hover-green w3-large">2025-03</a><a href="2025-02.html" onclick="w3_close()" class="w3-bar-item w3-button w3-hover-green w3-large">2025-02</a><a href="2025-01.html" onclick="w3_close()" class="w3-bar-item w3-button w3-hover-green w3-large">2025-01</a><a href="2024-12.html" onclick="w3_close()" class="w3-bar-item w3-button w3-hover-green w3-large">2024-12</a><a href="2024-11.html" onclick="w3_close()" class="w3-bar-item w3-button w3-hover-green w3-large">2024-11</a><a href="2024-10.html" onclick="w3_close()" class="w3-bar-item w3-button w3-hover-green w3-large">2024-10</a><a href="2024-09.html" onclick="w3_close()" class="w3-bar-item w3-button w3-hover-green w3-large">2024-09</a><a href="2024-08.html" onclick="w3_close()" class="w3-bar-item w3-button w3-hover-green w3-large">2024-08</a><a href="2024-07.html" onclick="w3_close()" class="w3-bar-item w3-button w3-hover-green w3-large">2024-07</a><a href="2024-06.html" onclick="w3_close()" class="w3-bar-item w3-button w3-hover-green w3-large">2024-06</a><a href="2024-05.html" onclick="w3_close()" class="w3-bar-item w3-button w3-hover-green w3-large">2024-05</a><a href="2024-04.html" onclick="w3_close()" class="w3-bar-item w3-button w3-hover-green w3-large">2024-04</a><a href="2024-03.html" onclick="w3_close()" class="w3-bar-item w3-button w3-hover-green w3-large">2024-03</a><a href="2024-02.html" onclick="w3_close()" class="w3-bar-item w3-button w3-hover-green w3-large">2024-02</a><a href="2024-01.html" onclick="w3_close()" class="w3-bar-item w3-button w3-hover-green w3-large">2024-01</a><a href="2023-12.html" onclick="w3_close()" class="w3-bar-item w3-button w3-hover-green w3-large">2023-12</a><a href="2023-11.html" onclick="w3_close()" class="w3-bar-item w3-button w3-hover-green w3-large">2023-11</a><a href="2023-10.html" onclick="w3_close()" class="w3-bar-item w3-button w3-hover-green w3-large">2023-10</a><a href="2023-09.html" onclick="w3_close()" class="w3-bar-item w3-button w3-hover-green w3-large">2023-09</a><a href="2023-08.html" onclick="w3_close()" class="w3-bar-item w3-button w3-hover-green w3-large">2023-08</a><a href="2023-07.html" onclick="w3_close()" class="w3-bar-item w3-button w3-hover-green w3-large">2023-07</a><a href="2023-06.html" onclick="w3_close()" class="w3-bar-item w3-button w3-hover-green w3-large">2023-06</a><a href="2023-05.html" onclick="w3_close()" class="w3-bar-item w3-button w3-hover-green w3-large">2023-05</a><a href="2023-04.html" onclick="w3_close()" class="w3-bar-item w3-button w3-hover-green w3-large">2023-04</a><a href="2023-03.html" onclick="w3_close()" class="w3-bar-item w3-button w3-green w3-large">2023-03</a><a href="2023-02.html" onclick="w3_close()" class="w3-bar-item w3-button w3-hover-green w3-large">2023-02</a><a href="2023-01.html" onclick="w3_close()" class="w3-bar-item w3-button w3-hover-green w3-large">2023-01</a><a href="2022-12.html" onclick="w3_close()" class="w3-bar-item w3-button w3-hover-green w3-large">2022-12</a><a href="2022-11.html" onclick="w3_close()" class="w3-bar-item w3-button w3-hover-green w3-large">2022-11</a><a href="2022-10.html" onclick="w3_close()" class="w3-bar-item w3-button w3-hover-green w3-large">2022-10</a><a href="2022-09.html" onclick="w3_close()" class="w3-bar-item w3-button w3-hover-green w3-large">2022-09</a><a href="2022-08.html" onclick="w3_close()" class="w3-bar-item w3-button w3-hover-green w3-large">2022-08</a><a href="2022-07.html" onclick="w3_close()" class="w3-bar-item w3-button w3-hover-green w3-large">2022-07</a><a href="2022-06.html" onclick="w3_close()" class="w3-bar-item w3-button w3-hover-green w3-large">2022-06</a><a href="2022-05.html" onclick="w3_close()" class="w3-bar-item w3-button w3-hover-green w3-large">2022-05</a><a href="2022-04.html" onclick="w3_close()" class="w3-bar-item w3-button w3-hover-green w3-large">2022-04</a><a href="2022-03.html" onclick="w3_close()" class="w3-bar-item w3-button w3-hover-green w3-large">2022-03</a><a href="2022-02.html" onclick="w3_close()" class="w3-bar-item w3-button w3-hover-green w3-large">2022-02</a><a href="2022-01.html" onclick="w3_close()" class="w3-bar-item w3-button w3-hover-green w3-large">2022-01</a><a href="2021-12.html" onclick="w3_close()" class="w3-bar-item w3-button w3-hover-green w3-large">2021-12</a><a href="2021-11.html" onclick="w3_close()" class="w3-bar-item w3-button w3-hover-green w3-large">2021-11</a><a href="2021-10.html" onclick="w3_close()" class="w3-bar-item w3-button w3-hover-green w3-large">2021-10</a><a href="2021-09.html" onclick="w3_close()" class="w3-bar-item w3-button w3-hover-green w3-large">2021-09</a><a href="2021-08.html" onclick="w3_close()" class="w3-bar-item w3-button w3-hover-green w3-large">2021-08</a><a href="2021-07.html" onclick="w3_close()" class="w3-bar-item w3-button w3-hover-green w3-large">2021-07</a><a href="2021-06.html" onclick="w3_close()" class="w3-bar-item w3-button w3-hover-green w3-large">2021-06</a><a href="2021-05.html" onclick="w3_close()" class="w3-bar-item w3-button w3-hover-green w3-large">2021-05</a><a href="2021-04.html" onclick="w3_close()" class="w3-bar-item w3-button w3-hover-green w3-large">2021-04</a><a href="2021-03.html" onclick="w3_close()" class="w3-bar-item w3-button w3-hover-green w3-large">2021-03</a><a href="2021-02.html" onclick="w3_close()" class="w3-bar-item w3-button w3-hover-green w3-large">2021-02</a>
 </sidebar>
 
+
 <div class="w3-main w3-content w3-padding" style="max-width:1200px;">
+
+    <!-- First Photo Grid-->
     <div class="w3-row-padding w3-padding-16 w3-center" id="img_list">
         <div class="w3-third " style="position: relative;height:249px">
   <img class="smallImg" src="https://cn.bing.com/th?id=OHR.PeacockFeathers_EN-US0365605509_UHD.jpg&pid=hp&w=50"  style="width:95%;" /><a href="day/202303/31.html"  target="_blank"> <img class="bigImg w3-hover-shadow" src="https://cn.bing.com/th?id=OHR.PeacockFeathers_EN-US0365605509_UHD.jpg&pid=hp&w=384&h=216&rs=1&c=4" style="width:95%" onload="imgloading(this)"></a>
@@ -207,18 +246,32 @@
     </div>
 </div>
 
-<!-- Footer - 确保只有这一行 -->
+<!-- Footer -->
 <footer class="w3-center w3-light-grey w3-padding-48 w3-large">
     <p>本站所有图片均来源于必应搜索</p>
 </footer>
 
+<script src="/js/love.js"></script>
+<script src="/js/search.js"></script>
 <script>
+    // Script to open and close sidebar
     function w3_open() {
         document.getElementById("mySidebar").style.display = "block";
     }
+
     function w3_close() {
         document.getElementById("mySidebar").style.display = "none";
     }
+</script>
+<script src="https://jsdelivr.wdbyte.com/npm/darkmode-js@1.5.7/lib/darkmode-js.min.js"></script>
+<script>
+    function addDarkmodeWidget() {
+        const options = {
+            label: '🌓'
+        }
+        new Darkmode(options).showWidget();
+    }
+    window.addEventListener('load', addDarkmodeWidget);
 </script>
 </body>
 </html>
