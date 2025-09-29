@@ -1,4 +1,4 @@
-name: Java CI with Maven and Deploy
+﻿name: Java CI with Maven and Deploy
 
 on:
   push:
@@ -22,7 +22,7 @@ permissions:
 
 concurrency:
   group: "pages"
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   build:
